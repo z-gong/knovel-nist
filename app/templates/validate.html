@@ -1,0 +1,46 @@
+{% extends '_base.html' %}
+{% block body %}
+    <table id="tb-molecules">
+        <tr>
+            <th>#ID</th>
+            <th>Formula</th>
+            <th>CAS</th>
+            <th>SMILES</th>
+            <th>Tfus</th>
+            <th>Tvap</th>
+            <th>Tc</th>
+            <th>T</th>
+            <th>P</th>
+            <th>Dliq</th>
+            <th>Dgas</th>
+            <th>ST</th>
+            <th>Cp</th>
+            <th>Viscosity</th>
+        </tr>
+        {% for mol, T_list in mol_T_dict.items() %}
+            <tr><td colspan="100"></td></tr>
+            {% for T in T_list %}
+                <tr>
+                    <td>{{ mol.id }}</td>
+                    <td>{{ mol.formula }}</td>
+                    <td>{{ mol.cas }}</td>
+                    <td>{{ mol.isomeric_smiles }}</td>
+                    <td class="{{ 'not_exp' if not mol.Tfus_is_exp }}">{{ mol.Tfus | r(1) or '' }}</td>
+                    <td class="{{ 'not_exp' if not mol.Tvap_is_exp }}">{{ mol.Tvap | r(1) or '' }}</td>
+                    <td class="{{ 'not_exp' if not mol.Tc_is_exp }}">{{ mol.Tc | r(1) or '' }}</td>
+                    <td><b>{{ T }}</b></td>
+                    <td class="{{ 'not_exp' if not mol.Pvap_is_exp }}">{{ mol.get_Pvap(T) | r(1) or '' }}</td>
+                    <td class="{{ 'not_exp' if not mol.density_is_exp }}">{{ mol.get_density(T) | r(3) or '' }}</td>
+                    <td>{{ '' }}</td>
+                    <td class="{{ 'not_exp' if not mol.surface_tension_is_exp }}">{{ mol.get_surface_tension(T) | r(1) or '' }}</td>
+                    <td class="{{ 'not_exp' if not mol.Cp_is_exp }}">{{ mol.get_Cp(T)| r(1) or '' }}</td>
+                    <td class="{{ 'not_exp' if not mol.viscosity_is_exp }}">{{ mol.get_viscosity(T) |r(2) or '' }}</td>
+                </tr>
+            {% endfor %}
+        {% endfor %}
+    </table>
+{% endblock %}
+{% block script %}
+    <script>
+    </script>
+{% endblock %}

@@ -1,0 +1,33 @@
+{% extends '_base.html' %}
+{% block body %}
+    <table id="tb-molecules">
+        <tr>
+            <th>#No</th>
+            <th>Formula</th>
+            <th>CAS</th>
+            <th>SMILES</th>
+            <th>Tfus</th>
+            <th>Tvap</th>
+            <th>Tc</th>
+            <th>CID</th>
+            <th>Remark</th>
+        </tr>
+        {% for mol in molecules %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ mol.formula }}</td>
+                <td>{{ mol.cas }}</td>
+                <td>{{ mol.smiles }}</td>
+                <td>{{ mol.Tfus | rint }}</td>
+                <td>{{ mol.Tvap | rint }}</td>
+                <td>{{ mol.Tc | rint }}</td>
+                <td>{{ mol.content_id }}</td>
+                <td>{{ mol.remark }}</td>
+            </tr>
+        {% endfor %}
+    </table>
+{% endblock %}
+{% block script %}
+    <script>
+    </script>
+{% endblock %}

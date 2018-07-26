@@ -1,0 +1,70 @@
+{% extends '_base.html' %}
+{% block body %}
+    <table id="tb-groups">
+        <tr>
+            <th>ID</th>
+            <th>SMARTS</th>
+            <th>Group</th>
+            <th>Include
+                <button name="include-all">All</button>
+            </th>
+            <th>Whatever
+                <button name="whatever-all">All</button>
+            </th>
+            <th>Exclude
+                <button name="exclude-all">All</button>
+            </th>
+        </tr>
+        {% for group in groups %}
+            <tr>
+                <td>{{ group.id }}</td>
+                <td>{{ group.smarts }}</td>
+                <td>{{ group.name }}</td>
+                <td><input type="radio" name="{{ group.id }}" value="include"></td>
+                <td><input type="radio" name="{{ group.id }}" value="whatever" {{ 'checked' if not group.bad }}></td>
+                <td><input type="radio" name="{{ group.id }}" value="exclude" {{ 'checked' if group.bad }}></td>
+            </tr>
+        {% endfor %}
+    </table>
+    <br/>
+    Type of function groups: Least <input name="group-least" value="1"> Most <input name="group-most" value="100">
+    Number of heavy atoms: Least <input name="heavy-least" value="1"> Most <input name="heavy-most" value="19">
+    <button id='btn-search'>Search</button>
+{% endblock %}
+{% block script %}
+    <script>
+        $('button[name=include-all]').click(function (e) {
+            $('input:radio[value=include]').each(function () {
+                $(this).prop('checked', 'checked')
+            })
+        });
+        $('button[name=whatever-all]').click(function (e) {
+            $('input:radio[value=whatever]').each(function () {
+                $(this).prop('checked', 'checked')
+            })
+        });
+        $('button[name=exclude-all]').click(function (e) {
+            $('input:radio[value=exclude]').each(function () {
+                $(this).prop('checked', 'checked')
+            })
+        });
+        $('#btn-search').click(function (e) {
+            e.preventDefault();
+            inc_array = [];
+            exc_array = [];
+            $('#tb-groups').find('input:radio[value=include]:checked').each(function () {
+                inc_array.push($(this).attr('name'))
+            });
+            $('#tb-groups').find('input:radio[value=exclude]:checked').each(function () {
+                exc_array.push($(this).attr('name'))
+            });
+            var base_url = '{{ url_for('main.show_molecules_in_groups') }}';
+            var url = base_url.replace(/$/, '?include=' + inc_array.join(',') + '&exclude=' + exc_array.join(','));
+            url += '&group_least=' + $('input[name=group-least]').val();
+            url += '&group_most=' + $('input[name=group-most]').val();
+            url += '&heavy_least=' + $('input[name=heavy-least]').val();
+            url += '&heavy_most=' + $('input[name=heavy-most]').val();
+            window.open(url, '_blank');
+        })
+    </script>
+{% endblock %}

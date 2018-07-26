@@ -1,0 +1,82 @@
+{% extends '_base.html' %}
+{% block body %}
+    <button id="btn-train">Get data for training force field</button>
+    <button id="btn-msdserver">Get data for MSD-Server</button>
+    <button id="btn-msdserver-tvap">Get data for MSD-Server Tvap <=</button>
+    <input id="tvap" value="600">
+    <button id="btn-validate">Get data for validation</button>
+    <input id="checkbox-all" type="checkbox">Check all
+    <table id="tb-molecules">
+        <tr>
+            <th>No</th>
+            <th>Formula</th>
+            <th>CAS</th>
+            <th>CID</th>
+            <th>SMILES</th>
+            <th>Name</th>
+            <th>Tfus</th>
+            <th>Tvap</th>
+            <th>Tc</th>
+            <th>Groups</th>
+            <th>Remark</th>
+            <th></th>
+        </tr>
+        {% for mol in molecules %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ mol.formula }}</td>
+                <td>{{ mol.cas }}</td>
+                <td>{{ mol.content_id }}</td>
+                <td>{{ mol.smiles }}</td>
+                <td>{{ mol.name }}</td>
+                <td> {{ mol.Tfus | rint }}</td>
+                <td> {{ mol.Tvap | rint }}</td>
+                <td> {{ mol.Tc | rint }}</td>
+                <td> {{ mol.groups_str }}</td>
+                <td> {{ mol.remark or '' }}</td>
+                <td>
+                    <input type="checkbox" value="{{ mol.id }}">
+                </td>
+            </tr>
+        {% endfor %}
+    </table>
+{% endblock %}
+{% block script %}
+    <script>
+        $('#btn-train').click(function () {
+            array = [];
+            $('#tb-molecules').find('input:checkbox:checked').each(function () {
+                array.push($(this).val())
+            });
+            const base_url = "{{ url_for('main.train', molecules=0) }}";
+            window.open(base_url.replace(/0$/, array.join(',')));
+        });
+        $('#btn-msdserver').click(function () {
+            array = [];
+            $('#tb-molecules').find('input:checkbox:checked').each(function () {
+                array.push($(this).val())
+            });
+            const base_url = "{{ url_for('main.msdserver', molecules=0) }}";
+            window.open(base_url.replace(/0$/, array.join(',')));
+        });
+        $('#btn-msdserver-tvap').click(function () {
+            array = [];
+            $('#tb-molecules').find('input:checkbox:checked').each(function () {
+                array.push($(this).val())
+            });
+            const base_url = "{{ url_for('main.msdserver', molecules=0) }}";
+            window.open(base_url.replace(/0$/, array.join(',')) + '?Tvap=' + $('#tvap').val());
+        });
+        $('#btn-validate').click(function () {
+            array = [];
+            $('#tb-molecules').find('input:checkbox:checked').each(function () {
+                array.push($(this).val())
+            });
+            const base_url = "{{ url_for('main.validate', molecules=0) }}";
+            window.open(base_url.replace(/0$/, array.join(',')));
+        });
+        $('#checkbox-all').click(function () {
+            $('#tb-molecules').find('input:checkbox').prop('checked', $(this).prop('checked'));
+        })
+    </script>
+{% endblock %}
