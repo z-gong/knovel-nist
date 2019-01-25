@@ -1,0 +1,7 @@
+requests
+flask
+sqlalchemy
+flask-sqlalchemy
+openbabel
+scipy
+fire

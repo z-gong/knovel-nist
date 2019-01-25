@@ -19,10 +19,10 @@
                 <td>{{ mol.smiles }}</td>
                 {% if mol.Tm25 != None %}
                     <td>{{ mol.Tm25 | rint }}</td>
-                    <td>{{ mol.get_Pvap(mol.Tm25) | rint or '' }}</td>
+                    <td>{{ mol.get_pvap(mol.Tm25) | rint or '' }}</td>
                     <td>{{ mol.get_density(mol.Tm25) | r(3) or '' }}</td>
                     <td>1.0</td>
-                    <td>{{ mol.get_Hvap(mol.Tm25) | r(1) or '' }}</td>
+                    <td>{{ mol.get_hvap(mol.Tm25) | r(1) or '' }}</td>
                     <td>0.2</td>
                     <td>{{ mol.formula }}</td>
                     <td>{{ mol.content_id }}</td>
@@ -33,10 +33,10 @@
                 <td>{{ mol.smiles }}</td>
                 {% if mol.Tvap != None %}
                     <td>{{ mol.Tvap | rint }}</td>
-                    <td>{{ mol.get_Pvap(mol.Tvap) | rint or '' }}</td>
+                    <td>{{ mol.get_pvap(mol.Tvap) | rint or '' }}</td>
                     <td>{{ mol.get_density(mol.Tvap) | r(3) or '' }}</td>
                     <td>1.0</td>
-                    <td>{{ mol.get_Hvap(mol.Tvap) | r(1) or '' }}</td>
+                    <td>{{ mol.get_hvap(mol.Tvap) | r(1) or '' }}</td>
                     <td>0.2</td>
                 {% endif %}
             </tr>
@@ -45,10 +45,10 @@
                 <td>{{ mol.smiles }}</td>
                 {% if mol.Tcx8 != None %}
                     <td>{{ (mol.Tcx8) | rint }}</td>
-                    <td>{{ mol.get_Pvap(mol.Tcx8) | rint or '' }}</td>
+                    <td>{{ mol.get_pvap(mol.Tcx8) | rint or '' }}</td>
                     <td>{{ mol.get_density(mol.Tcx8) | r(3) or '' }}</td>
                     <td>1.0</td>
-                    <td>{{ mol.get_Hvap(mol.Tcx8) | r(1) or '' }}</td>
+                    <td>{{ mol.get_hvap(mol.Tcx8) | r(1) or '' }}</td>
                     <td>0.0</td>
                 {% endif %}
             </tr>

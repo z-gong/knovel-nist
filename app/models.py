@@ -8,6 +8,22 @@ from sqlalchemy import Column, Integer, Float, Text, String, ForeignKey, Boolean
 
 from . import db
 
+import sys
+
+sys.path.append('../../ms-tools')
+
+from mstools.formula import Formula
+
+
+def ri(f):
+    '''
+    round float to int.
+    None will still be None.
+    '''
+    if f is None:
+        return None
+    return int(round(f))
+
 
 class NistGroup(db.Model):
     __bind_key__ = 'nist'
@@ -28,12 +44,16 @@ class NistMolecule(db.Model):
     __tablename__ = 'nist_molecule'
     id = Column(Integer, primary_key=True)
     content_id = Column(String(100), unique=True)
-    cas = Column(String(100))  # CAS could be duplicated for isomers
+    cas = Column(String(100))  # CAS could be duplicated for isomers or could be None
     formula = Column(String(100))
     name = Column(Text)
     smiles = Column(Text)  # convert to canonical SMILES
     inchi = Column(Text)  # original InChI from knovel-nist website
     weight = Column(Float)
+    n_heavy = Column(Integer)
+    n_nothx = Column(Integer)
+    remark = Column(Text)
+
     tc = Column(Float)  # K
     pc = Column(Float)  # kPa
     dc = Column(Float)  # kg/m^3
@@ -46,8 +66,13 @@ class NistMolecule(db.Model):
     tb_u = Column(Float)  # K
     tt_u = Column(Float)  # K
     hfus_u = Column(Float)  # kJ/mol
-    remark = Column(Text)
-    n_heavy = Column(Integer)
+    tc_has_exp = Column(Boolean, default=False)
+    pc_has_exp = Column(Boolean, default=False)
+    dc_has_exp = Column(Boolean, default=False)
+    tb_has_exp = Column(Boolean, default=False)
+    tt_has_exp = Column(Boolean, default=False)
+    hfus_has_exp = Column(Boolean, default=False)
+
     constant_inserted = Column(Boolean, default=False)
     data_inserted = Column(Boolean, default=False)
     spline_inserted = Column(Boolean, default=False)
@@ -59,6 +84,11 @@ class NistMolecule(db.Model):
 
     def __repr__(self):
         return '<NistMolecule: %s %s %s>' % (self.formula, self.smiles, self.name)
+
+    def __str__(self):
+        return '%i\t%s\t%s\t%s\t%s\t%s\t%s\t%s' % (self.id, self.formula, self.cas or 'None', self.smiles,
+                                                   ri(self.tt) or 'None', ri(self.tb) or 'None', ri(self.tc) or 'None',
+                                                   self.content_id)
 
     @property
     def Tfus(self):
@@ -74,14 +104,16 @@ class NistMolecule(db.Model):
 
     @property
     def Tm25(self):
-        if self.tt == None:
-            return 300
+        if self.tt is None:
+            if self.tb is None:
+                return 298
+            return self.tb * 0.4 + 100
         else:
             return max(self.tt + 25, 200)
 
     @property
     def Tcx8(self):
-        if self.tc == None:
+        if self.tc is None:
             return None
         else:
             return self.tc * 0.8
@@ -91,35 +123,67 @@ class NistMolecule(db.Model):
         groups = [group.name for group in self.groups]
         return ', '.join(groups)
 
-    def get_Pvap(self, T):
+    def get_pvap(self, T):
         spline = self.splines.join(NistProperty).filter(NistProperty.name == 'pvap-lg').first()
-        if spline == None:
+        if spline is None:
             return None
         pvap = spline.get_data(T)[0]
-        if pvap != None:
+        if pvap is not None:
             pvap /= 100
         return pvap  # bar
 
     def get_density(self, T):
         spline = self.splines.join(NistProperty).filter(NistProperty.name == 'density-lg').first()
-        if spline == None:
+        if spline is None:
             return None
         dens = spline.get_data(T)[0]
-        if dens != None:
+        if dens is not None:
             dens /= 1000
         return dens  # g/mL
 
-    def get_Hvap(self, T):
+    def get_hvap(self, T):
         spline = self.splines.join(NistProperty).filter(NistProperty.name == 'hvap-lg').first()
-        if spline == None:
+        if spline is None:
             return None
         hvap = spline.get_data(T)[0]
         return hvap  # kJ/mol
+
+    def get_cp(self, T):
+        spline = self.splines.join(NistProperty).filter(NistProperty.name == 'cp-lg').first()
+        if spline is None:
+            return None
+        cp = spline.get_data(T)[0]
+        return cp  # J/mol.K
+
+    def get_viscosity(self, T):
+        spline = self.splines.join(NistProperty).filter(NistProperty.name == 'viscosity-lg').first()
+        if spline is None:
+            return None
+        vis = spline.get_data(T)[0]
+        if vis is not None:
+            vis *= 1000
+        return vis  # mPa.s
+
+    def get_st(self, T):
+        spline = self.splines.join(NistProperty).filter(NistProperty.name == 'st-lg').first()
+        if spline is None:
+            return None
+        st = spline.get_data(T)[0]
+        if st is not None:
+            st *= 1000
+        return st  # mN/m
 
     def update_n_heavy(self):
         import pybel
         m = pybel.readstring('smi', self.smiles)
         self.n_heavy = m.OBMol.NumHvyAtoms()
+
+        f = Formula(self.formula)
+        N = 0
+        for a, n in f.atomlist:
+            if a not in ('H', 'F', 'Cl', 'Br'):
+                N += n
+        self.n_nothx = N
 
 
 class NistMoleculeGroup(db.Model):
@@ -133,12 +197,26 @@ class NistProperty(db.Model):
     __bind_key__ = 'nist'
     __tablename__ = 'nist_property'
     id = Column(Integer, primary_key=True)
-    name = Column(Text)
+    name = Column(String(100))
     property_id = Column(String(100))
     phase_id = Column(String(100))
 
     datas = relationship('NistData', lazy='dynamic')
     splines = relationship('NistSpline', lazy='dynamic')
+
+
+class NistHasData(db.Model):
+    __bind_key__ = 'nist'
+    __tablename__ = 'nist_has_data'
+    id = Column(Integer, primary_key=True)
+    molecule_id = Column(Integer, ForeignKey(NistMolecule.id))
+    property_id = Column(Integer, ForeignKey(NistProperty.id))
+    property_name = Column(String(100))  # save property name for convenience
+    has_exp = Column(Boolean, default=False)  # has experimental data
+    has_rec = Column(Boolean, default=False)  # has recommended data
+
+    molecule = relationship(NistMolecule)
+    property = relationship(NistProperty)
 
 
 class NistData(db.Model):

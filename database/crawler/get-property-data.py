@@ -22,7 +22,7 @@ def gen_headers(cid):
             }
 
 
-def get_session_id(cid, headers):
+def get_session_id(headers):
     r = requests.post('https://app.knovel.com/api/',
                       json={"APIKEY"          : "EE109DAC-CDA6-4299-8095-F6D6DBF96380",
                             "APPLICATION_NAME": "web",
@@ -206,7 +206,6 @@ for line in lines:
 
     no = int(words[0])
     cid = words[7]
-    remark = words[8]
 
     # if no <= 1861:
     #     continue
@@ -217,7 +216,7 @@ for line in lines:
 
     GET_KEY = False
     while not GET_KEY:
-        session_id = get_session_id(cid, headers)
+        session_id = get_session_id(headers)
         ekey = get_ekey(cid, session_id, headers)
         if ekey == '':
             print('Blocked! Retry after 600s...')

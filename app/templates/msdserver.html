@@ -9,7 +9,7 @@
             <th>Tfus</th>
             <th>Tvap</th>
             <th>Tc</th>
-            <th>CID</th>
+            <th>content_id</th>
             <th>Remark</th>
         </tr>
         {% for mol in molecules %}
@@ -21,8 +21,9 @@
                 <td>{{ mol.Tfus | rint }}</td>
                 <td>{{ mol.Tvap | rint }}</td>
                 <td>{{ mol.Tc | rint }}</td>
+                <td>{{ mol.name }}</td>
                 <td>{{ mol.content_id }}</td>
-                <td>{{ mol.remark }}</td>
+                <td>{{ mol.remark or '' }}</td>
             </tr>
         {% endfor %}
     </table>

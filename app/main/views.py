@@ -26,13 +26,13 @@ def show_molecules_in_groups():
         .filter(NistMolecule.n_heavy >= heavy_least) \
         .filter(NistMolecule.n_heavy <= heavy_most)
 
-    if include != None and include != '':
+    if include is not None and include != '':
         group_ids = [int(i) for i in include.split(',')]
         for gid in group_ids:
             molecules = molecules.filter(NistMolecule.groups.any(NistGroup.id == gid))
 
     mol_list = molecules.all()
-    if exclude != None and exclude != '':
+    if exclude is not None and exclude != '':
         exclude_ids = [int(i) for i in exclude.split(',')]
         for gid in exclude_ids:
             exclude_molecules = molecules.filter(NistMolecule.groups.any(NistGroup.id == gid)).all()
@@ -56,12 +56,12 @@ def search(mol_list_str):
             pass
 
     molecules = NistMolecule.query.filter(
-            or_(
-                    NistMolecule.smiles.in_(mol_list),
-                    NistMolecule.formula.in_(mol_list),
-                    NistMolecule.name.in_(mol_list),
-                    NistMolecule.cas.in_(mol_list),
-            )).all()
+        or_(
+            NistMolecule.smiles.in_(mol_list),
+            NistMolecule.formula.in_(mol_list),
+            NistMolecule.name.in_(mol_list),
+            NistMolecule.cas.in_(mol_list),
+        )).all()
     return render_template('molecules.html', molecules=molecules, T=298)
 
 
@@ -81,8 +81,8 @@ def msdserver(molecules):
     for i in range(math.ceil(len(mol_ids) / 500)):
         mols = NistMolecule.query.filter(NistMolecule.id.in_(mol_ids[i * 500:(i + 1) * 500]))
         Tvap = request.args.get('Tvap')
-        if Tvap != None:
-            mols = mols.filter(NistMolecule.tb <= int(Tvap))
+        if Tvap is not None:
+            mols = mols.filter(NistMolecule.tb < int(Tvap) + 0.5)
         molecules += mols.all()
 
     molecules = sorted(molecules, key=lambda x: x.n_heavy)
@@ -97,13 +97,13 @@ def validate(molecules):
 
     mol_T_dict = OrderedDict()
     for mol in molecules:
-        if mol.Tfus != None:
+        if mol.Tfus is not None:
             Tmin = mol.Tfus
         else:
             Tmin = 200
-        if mol.Tc != None:
+        if mol.Tc is not None:
             Tmax = mol.Tc
-        elif mol.Tvap != None:
+        elif mol.Tvap is not None:
             Tmax = mol.Tvap + 100
         else:
             Tmax = 600

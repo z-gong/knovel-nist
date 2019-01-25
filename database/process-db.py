@@ -2,6 +2,7 @@
 # coding: utf-8
 
 import fire
+import os
 import sys
 import requests
 import pybel
@@ -130,7 +131,10 @@ def create_db():
 
 
 def insert_props():
-    '''Insert Properties'''
+    '''
+    Insert properties
+    Only saturated properties are inserted because they have the largest reliability
+    '''
 
     prop_list = [
         ['prVP', 'prVAPRLG', 'pvap-lg'],  # vapor pressure
@@ -163,7 +167,9 @@ def insert_props():
 
 
 def insert_mol(txt):
-    '''Insert molecules to DB'''
+    '''
+    Insert molecules to DB
+    '''
     with open(txt) as f:
         lines = f.read().splitlines()
 
@@ -191,7 +197,7 @@ def insert_mol(txt):
             continue
 
         mol = NistMolecule.query.filter_by(content_id=content_id).first()
-        if mol == None:
+        if mol is None:
             mol = NistMolecule()
         mol.content_id = content_id
         mol.knovel_id = knovel_id
@@ -201,8 +207,8 @@ def insert_mol(txt):
         mol.tc = tc
         mol.pc = pc
         mol.dc = dc
-        mol.smiles = m.write('can').strip()
         mol.inchi = inchi
+        mol.smiles = m.write('can').strip()
         mol.weight = m.molwt
         mol.n_heavy = m.OBMol.NumHvyAtoms()
 
@@ -214,7 +220,7 @@ def insert_mol(txt):
 def insert_constant():
     '''Insert Constant'''
 
-    tar = tarfile.open('/home/gongzheng/knovel-nist-crawler-json/constant.tar')
+    tar = tarfile.open('/home/gongzheng/workspace/MGI/NIST/constant.tar.gz')
     names = tar.getnames()
 
     cids = [name.split('/')[-1].split('-')[-1] for name in names]
@@ -224,6 +230,7 @@ def insert_constant():
     mols = db.session.query(NistMolecule).filter(NistMolecule.constant_inserted == False) \
         .filter(NistMolecule.content_id.in_(cids))
 
+    mol: NistMolecule
     for i, mol in enumerate(mols):
         if i % 10 == 0:
             sys.stdout.write('\r\t%i' % i)
@@ -246,26 +253,118 @@ def insert_constant():
         j_tb = j_constant.get('prBP')
         j_tt = j_constant.get('prTPT')
         j_hfus = j_constant.get('prEFU')
-        if j_tc != None:
+        if j_tc is not None:
             mol.tc = j_tc['srNT']['VALUES'][0]['v']
             mol.tc_u = j_tc['srNT']['VALUES'][0].get('u')
-        if j_dc != None:
+            mol.tc_has_exp = j_tc['srNT']['HAS_EXPERIMENTAL']
+        if j_dc is not None:
             mol.dc = j_dc['srNT']['VALUES'][0]['v']
             mol.dc_u = j_dc['srNT']['VALUES'][0].get('u')
-        if j_pc != None:
+            mol.dc_has_exp = j_dc['srNT']['HAS_EXPERIMENTAL']
+        if j_pc is not None:
             mol.pc = j_pc['srNT']['VALUES'][0]['v']
             mol.pc_u = j_pc['srNT']['VALUES'][0].get('u')
-        if j_tb != None:
+            mol.pc_has_exp = j_pc['srNT']['HAS_EXPERIMENTAL']
+        if j_tb is not None:
             mol.tb = j_tb['srNT']['VALUES'][0]['v']
             mol.tb_u = j_tb['srNT']['VALUES'][0].get('u')
-        if j_tt != None:
+            mol.tb_has_exp = j_tb['srNT']['HAS_EXPERIMENTAL']
+        if j_tt is not None:
             mol.tt = j_tt['srNT']['VALUES'][0]['v']
             mol.tt_u = j_tt['srNT']['VALUES'][0].get('u')
-        if j_hfus != None:
+            mol.tt_has_exp = j_tt['srNT']['HAS_EXPERIMENTAL']
+        if j_hfus is not None:
             mol.hfus = j_hfus['srNT']['VALUES'][0]['v']
             mol.hfus_u = j_hfus['srNT']['VALUES'][0].get('u')
+            mol.hfus_has_exp = j_hfus['srNT']['HAS_EXPERIMENTAL']
         mol.constant_inserted = True
 
+    db.session.commit()
+
+
+def _get_available_props(cid):
+    r = requests.post('https://app.knovel.com/api/',
+                      json={
+                          "APIKEY"          : "EE109DAC-CDA6-4299-8095-F6D6DBF96380",
+                          "APPLICATION_NAME": "web",
+                          "CLIENT_TRACK_ID" : "knovel",
+
+                          "METHOD"          : {
+                              "NAME"  : "kms-purechem/compound-thermodata-properties",
+                              "PARAMS": {
+                                  "CONTENT_ID": cid,
+                                  "SOURCE_ID" : "all"
+                              },
+                              "TYPE"  : "GET"
+                          },
+                          "OPTIONAL_INPUT"  : {
+                              "DOMAIN_NAME": "moc.levonk.ppa"
+                          },
+                          "SESSION"         : {
+                              "ID": "5b8291cc-fbba-4dd5-c6fb-360f362d7cde"
+                          }
+                      }
+                      )
+    j = r.json()
+    return j
+
+
+def get_available_props():
+    for nist in NistMolecule.query:
+        filename = '/home/gongzheng/workspace/MGI/NIST/properties/' + nist.content_id
+        if os.path.exists(filename):
+            continue
+
+        print(nist.id, nist.content_id)
+        j = _get_available_props(nist.content_id)
+
+        with open(filename, 'w') as f:
+            f.write(json.dumps(j))
+
+
+def insert_available_props():
+    '''
+    Insert available properties to DB
+    The tar file contains availability of all properties
+    But we only insert property information we care
+    '''
+    tar = tarfile.open('/home/gongzheng/workspace/MGI/NIST/properties.tar.gz')
+    names = tar.getnames()
+
+    mols = db.session.query(NistMolecule)
+    properties = db.session.query(NistProperty).all()
+
+    for i, mol in enumerate(mols):
+        if i % 10 == 0:
+            sys.stdout.write('\r\t%i' % i)
+            sys.stdout.flush()
+        filename = mol.content_id
+        for name in names:
+            if name.endswith(filename):
+                filename = name
+                break
+        else:
+            print('File not exist %s' % filename)
+            continue
+
+        with tar.extractfile(tar.getmember(filename)) as f:
+            j = json.load(f)
+
+        for j_prop_category in j['BODY']['COMPOUND']['PROPERTY_METADATA'].values():
+            for j_prop in j_prop_category:
+                for p in properties:
+                    if p.phase_id not in j_prop['PHASES'].keys():
+                        continue
+
+                    has_data = NistHasData()
+                    has_data.molecule = mol
+                    has_data.property = p
+                    has_data.property_name = p.name
+                    if 'dqEXP' in j_prop['DATA_QUALITIES'].keys():
+                        has_data.has_exp = True
+                    if 'dqRECM' in j_prop['DATA_QUALITIES'].keys():
+                        has_data.has_rec = True
+                    db.session.add(has_data)
     db.session.commit()
 
 
@@ -312,6 +411,9 @@ def insert_prop_data():
 
         mol.data_inserted = True
 
+        if i % 100 == 0:
+            db.session.commit()
+
     db.session.commit()
 
 
@@ -337,7 +439,7 @@ def interpolate():
             u_list = []
 
             datas = mol.datas.filter(NistData.property == p)
-            if mol.tt != None:
+            if mol.tt is not None:
                 datas = datas.filter(NistData.t > mol.tt + 1)  # ignore temperatures lower than triple point + 1
 
             for d in datas:
