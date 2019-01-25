@@ -3,8 +3,8 @@
     <table id="tb-groups">
         <tr>
             <th>ID</th>
-            <th>SMARTS</th>
             <th>Group</th>
+            <th>SMARTS</th>
             <th>Include
                 <button name="include-all">All</button>
             </th>
@@ -18,8 +18,8 @@
         {% for group in groups %}
             <tr>
                 <td>{{ group.id }}</td>
-                <td>{{ group.smarts }}</td>
                 <td>{{ group.name }}</td>
+                <td>{{ group.smarts }}</td>
                 <td><input type="radio" name="{{ group.id }}" value="include"></td>
                 <td><input type="radio" name="{{ group.id }}" value="whatever" {{ 'checked' if not group.bad }}></td>
                 <td><input type="radio" name="{{ group.id }}" value="exclude" {{ 'checked' if group.bad }}></td>
