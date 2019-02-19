@@ -4,6 +4,7 @@
 import fire
 import os
 import sys
+import shutil
 import requests
 import pybel
 import tarfile
@@ -230,6 +231,7 @@ def insert_constant():
     mols = db.session.query(NistMolecule).filter(NistMolecule.constant_inserted == False) \
         .filter(NistMolecule.content_id.in_(cids))
 
+    print(mols.count())
     mol: NistMolecule
     for i, mol in enumerate(mols):
         if i % 10 == 0:
@@ -371,12 +373,13 @@ def insert_available_props():
 def insert_prop_data():
     '''Insert Thermodata to DB'''
 
-    tar = tarfile.open('/home/gongzheng/knovel-nist-crawler-json/prop-data.tar')
+    tar = tarfile.open('/home/gongzheng/workspace/MGI/NIST/prop-data.tar.gz')
     names = tar.getnames()
 
     mols = db.session.query(NistMolecule).filter(NistMolecule.constant_inserted == True) \
-        .filter(NistMolecule.data_inserted == False).filter(NistMolecule.n_heavy < 20)
+        .filter(NistMolecule.data_inserted == False)
 
+    print(mols.count())
     for i, mol in enumerate(mols):
         if i % 10 == 0:
             sys.stdout.write('\r\t%i' % i)
@@ -417,6 +420,10 @@ def insert_prop_data():
     db.session.commit()
 
 
+def fit():
+    pass
+
+
 def interpolate():
     '''Spline Interpolate'''
     from scipy import interpolate
@@ -426,7 +433,7 @@ def interpolate():
     props = db.session.query(NistProperty).filter(NistProperty.name.in_(pname_list))
 
     mols = db.session.query(NistMolecule).filter(NistMolecule.data_inserted == True) \
-        .filter(NistMolecule.spline_inserted == False).filter(NistMolecule.n_heavy < 20)
+        .filter(NistMolecule.spline_inserted == False)
 
     print(mols.count())
     for i, mol in enumerate(mols):
@@ -470,6 +477,76 @@ def interpolate():
             db.session.commit()
 
     db.session.commit()
+
+
+def _organize_constant():
+    olddir = '/home/gongzheng/workspace/MGI/NIST/constant_old'
+    names = os.listdir(olddir)
+
+    mols = db.session.query(NistMolecule)
+    mol: NistMolecule
+    i = 0
+    for mol in mols:
+        f = Formula(mol.formula)
+        if not set(f.atomdict.keys()) <= {'C', 'H', 'O', 'N', 'P', 'S', 'F', 'Cl', 'Br', 'I', 'Si', 'B'}:
+            continue
+
+        i += 1
+        if i % 10 == 0:
+            sys.stdout.write('\r\t%i' % i)
+            sys.stdout.flush()
+
+        filename = mol.content_id
+        for name in names:
+            if name.endswith(filename):
+                filename = name
+                break
+        else:
+            print('File not exist %s' % filename)
+            continue
+
+        newdir = '/home/gongzheng/workspace/MGI/NIST/constant'
+        newname = '%i-%s' % (mol.id, mol.content_id)
+        shutil.move(os.path.join(olddir, filename), os.path.join(newdir, newname))
+
+
+def _organize_prop_data():
+    olddir = '/home/gongzheng/workspace/MGI/NIST/prop-data_old'
+    names = os.listdir(olddir)
+
+    p_dict = dict()
+    for p in db.session.query(NistProperty).all():
+        p_dict[p.name] = p
+
+    mols = db.session.query(NistMolecule)
+    mol: NistMolecule
+    i = 0
+    for mol in mols:
+        f = Formula(mol.formula)
+        if not set(f.atomdict.keys()) <= {'C', 'H', 'O', 'N', 'P', 'S', 'F', 'Cl', 'Br', 'I', 'Si', 'B'}:
+            continue
+
+        i += 1
+        if i % 10 == 0:
+            sys.stdout.write('\r\t%i' % i)
+            sys.stdout.flush()
+
+        for has_data in db.session.query(NistHasData).filter(NistHasData.molecule == mol).filter(
+                NistHasData.has_rec == True):
+            p = p_dict[has_data.property_name]
+
+            filename = '%s-%s-%s' % (mol.content_id, p.property_id, p.phase_id)
+            for name in names:
+                if name.endswith(filename):
+                    filename = name
+                    break
+            else:
+                print('File not exit %s' % filename)
+                continue
+
+            newdir = '/home/gongzheng/workspace/MGI/NIST/prop-data'
+            newname = '%i-%s-%s-%s' % (mol.id, mol.content_id, p.property_id, p.phase_id)
+            shutil.move(os.path.join(olddir, filename), os.path.join(newdir, newname))
 
 
 if __name__ == '__main__':
