@@ -213,5 +213,30 @@ def insert_db(sdf_dir, unique_cids, begin=0, end=1000_000):
         db.session.commit()
 
 
+def print_mols_for_msdweb():
+    '''
+    Write molecule information into a txt file, so that can be imported into msdweb
+    Information needed are SMILES and IUPAC
+    '''
+    from app.models_pubchem import PubchemMolecule, db
+
+    print('#No\tCID\tFormula\tsmiles\tiupac')
+    ### Only select molecules with n_heavy >= 4 and n_C >= 2
+    ### Ignore chiral isomers
+    mols = db.session.query(PubchemMolecule) \
+        .filter(PubchemMolecule.remark == None) \
+        .filter(PubchemMolecule.smiles.notilike('%@%')) \
+        .filter(PubchemMolecule.n_heavy >= 4)
+
+    i = 0
+    for mol in mols:
+        f = Formula.read(mol.formula)
+        if f.atomdict.get('C') < 2:
+            continue
+
+        i += 1
+        print(i, mol.cid, mol.formula, mol.smiles, mol.name, sep='\t')
+
+
 if __name__ == '__main__':
     fire.Fire()
