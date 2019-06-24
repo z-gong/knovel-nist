@@ -9,6 +9,8 @@
             <th>Tfus</th>
             <th>Tvap</th>
             <th>Tc</th>
+            <th>Pc</th>
+            <th>Dc</th>
             <th>IUPAC</th>
             <th>content_id</th>
             <th>Remark</th>
@@ -22,6 +24,8 @@
                 <td>{{ mol.Tfus | rint }}</td>
                 <td>{{ mol.Tvap | rint }}</td>
                 <td>{{ mol.Tc | rint }}</td>
+                <td>{{ mol.Pc | r(1) }}</td>
+                <td>{{ mol.Dc | r(3) }}</td>
                 <td>{{ mol.name }}</td>
                 <td>{{ mol.content_id }}</td>
                 <td>{{ mol.remark or '' }}</td>

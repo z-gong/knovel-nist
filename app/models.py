@@ -103,6 +103,20 @@ class NistMolecule(db.Model):
         return self.tc
 
     @property
+    def Pc(self):
+        if self.pc is None:
+            return None
+
+        return self.pc / 100  # bar
+
+    @property
+    def Dc(self):
+        if self.dc is None:
+            return None
+
+        return self.dc / 1000  # g/mL
+
+    @property
     def Tm25(self):
         if self.tt is None:
             if self.tb is None:

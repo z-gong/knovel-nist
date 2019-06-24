@@ -17,7 +17,7 @@ app.register_blueprint(main_blueprint)
 @app.template_filter()
 def r(f, n):
     ''' round float to n decimal'''
-    if f == None:
+    if f is None:
         return None
     else:
         return round(f, n)
@@ -25,7 +25,7 @@ def r(f, n):
 @app.template_filter()
 def rint(f):
     ''' round float to int'''
-    if f == None:
+    if f is None:
         return None
     else:
         return int(round(f))
