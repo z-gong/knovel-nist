@@ -18,6 +18,7 @@ elif sys.argv[1] == 'pubchem':
         PubchemMoleculeGroup as MoleculeGroup
 
 smarts_bad = {
+    # Not covered by TEAM FF
     'radicalC'                     : '[#6;v0,v1,v2,v3]',
     '*=*=*'                        : '*=*=*',
     '*#*~*#*'                      : '*#*~*#*',
@@ -43,40 +44,46 @@ smarts_bad = {
     'amide'                        : 'O=C[NX3]',
     'acyl-halide'                  : 'O=C[F,Cl,Br]',
     'polybenzene'                  : 'c1ccc2c(c1)cccc2',
+    # Covered by TEAM FF but the results are not good
+    '[r5;#6X3]'                    : '[r5;#6X3]',
+    '[r5]~[!#6]'                   : '[r5]~[!#6]',
+    'cyclo-ester'                  : '[C;R](=O)O',
+    'C=C~[O,N;H0]'                 : 'C=C~[O,N;H0]',
+    'C=C-X'                        : 'C=C[F,Cl,Br]',
+    '[F,Cl,Br][#6][F,Cl,Br]'       : '[F,Cl,Br][#6][F,Cl,Br]',
+    'alkyne'                       : '[CX2]#[CX2]',
+    'acid'                         : 'C(=O)[OH]',
+    'nitrile'                      : '[NX1]#[CX2][C,c]',
+    'nitro'                        : '[C,c][NX3](~[OX1])~[OX1]',
+    'N-aromatic'                   : 'n',
 }
 smarts_good = {
-    'C=C~[O,N;H0]': 'C=C~[O,N;H0]',
-    '[r5]~[!#6]'  : '[r5]~[!#6]',
-    'ring3'       : '[r3]',
-    'ring4'       : '[r4]',
-    'ring5'       : '[r5]',
-    'alkene'      : '[CX3]=[CX3]',
-    'alkyne'      : '[CX2]#[CX2]',
-    'benzene'     : 'c1ccccc1',
+    'O'       : '[#8]',
+    'N'       : '[#7]',
+    'F'       : 'F',
+    'Cl'      : 'Cl',
+    'Br'      : 'Br',
+    'ring3'   : '[r3]',
+    'ring4'   : '[r4]',
+    'ring5'   : '[r5]',
+    'alkene'  : '[CX3]=[CX3]',
+    'benzene' : 'c1ccccc1',
     # 'ether'       : 'COC',
     # 'Ph-ether'    : 'cO[C,c]',
-    'ether'       : '[C,c]O[C,c]',
-    'acetal'      : '[O;H0]C[O;H0]',
-    'ketone'      : '[C,c]C(=O)[C,c]',
-    'aldehyde'    : '[C,c]C(=O)[H]',
+    'ether'   : '[C,c]O[C,c]',
+    'acetal'  : '[O;H0]C[O;H0]',
+    'ketone'  : '[C,c]C(=O)[C,c]',
+    'aldehyde': '[C,c]C(=O)[H]',
     # 'alcohol'     : 'C[OH]',
     # 'Ph-ol'       : 'c[OH]',
-    'alcohol'     : '[C,c][OH]',
-    'ester'       : 'C(=O)O[C,c;!$(C=O)]',
-    'acid'        : 'C(=O)[OH]',
+    'alcohol' : '[C,c][OH]',
+    'ester'   : 'C(=O)O[C,c;!$(C=O)]',
     # 'amine'       : 'C[NX3;!$(NC=O);!$(N~O);!$(Nc)]',
     # 'Ph-amine'    : 'c[NX3;!$(NC=O);!$(N~O)]',
-    'amine'       : '[C,c][NX3;!$(NC=O);!$(N~O)]',
-    'nitrile'     : '[NX1]#[CX2][C,c]',
-    'nitro'       : '[C,c][NX3](~[OX1])~[OX1]',
-    'N-aromatic'  : 'n',
-    'halogen'     : '[F,Cl,Br]',
-    # 'F'           : 'F',
-    # 'Cl'          : 'Cl',
-    # 'Br'          : 'Br',
-    'CX4-X'       : '[CX4][F,Cl,Br]',
-    'c-X'         : 'c[F,Cl,Br]',
-    'C=C-X'       : 'C=C[F,Cl,Br]',
+    'amine'   : '[C,c][NX3;!$(NC=O);!$(N~O)]',
+    'halogen' : '[F,Cl,Br]',
+    'CX4-X'   : '[CX4][F,Cl,Br]',
+    'c-X'     : 'c[F,Cl,Br]',
 }
 smarts_dict = dict(**smarts_bad, **smarts_good)
 
@@ -91,10 +98,12 @@ for name, smarts in smarts_dict.items():
     db.session.add(group)
 
 diol = Group(name='diol', smarts='diol')
+dix = Group(name='di-x', smarts='di-x')
 hydrocarbon = Group(name='hydrocarbon', smarts='hydrocarbon')
 alkane = Group(name='alkane', smarts='alkane')
 
 db.session.add(diol)
+db.session.add(dix)
 db.session.add(hydrocarbon)
 db.session.add(alkane)
 
@@ -131,6 +140,8 @@ def match(smiles):
 
     if pybel.Smarts('[OH]').findall(py_mol).__len__() > 1:
         group_ids.append(smarts_id['diol'])
+    if pybel.Smarts('[F,Cl,Br]').findall(py_mol).__len__() > 1:
+        group_ids.append(smarts_id['di-x'])
 
     for name, smarts in smarts_dict.items():
         if pybel.Smarts(smarts).findall(py_mol):
