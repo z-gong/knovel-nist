@@ -1,21 +1,12 @@
 #!/usr/bin/env python3
-# coding=utf-8
 
 import sys
-import pybel
 import math
 import multiprocessing
-
-sys.path.append('..')
-sys.path.append('../../ms-tools')
+from openbabel import pybel
+from app.formula import Formula
 from app.models import db
-from mstools.formula import Formula
-
-if sys.argv[1] == 'nist':
-    from app.models import NistMolecule as Molecule, NistGroup as Group, NistMoleculeGroup as MoleculeGroup
-elif sys.argv[1] == 'pubchem':
-    from app.models_pubchem import PubchemMolecule as Molecule, PubchemGroup as Group, \
-        PubchemMoleculeGroup as MoleculeGroup
+from app.models import NistMolecule as Molecule, NistGroup as Group, NistMoleculeGroup as MoleculeGroup
 
 smarts_bad = {
     # Not covered by TEAM FF
@@ -122,7 +113,7 @@ def match(smiles):
     py_mol = pybel.readstring('smi', smiles)
     py_mol.removeh()
     formula = py_mol.formula
-    atom_set = set(Formula.read(formula).atomdict.keys())
+    atom_set = set(Formula(formula).atoms.keys())
     if not atom_set <= {'C', 'H', 'O', 'N', 'F', 'Cl', 'Br'}:
         return group_ids
 

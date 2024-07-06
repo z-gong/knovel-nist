@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
-# coding: utf-8
 
 import fire
 import os
 import sys
 import shutil
 import requests
-import pybel
 import tarfile
 
 sys.path.append('..')

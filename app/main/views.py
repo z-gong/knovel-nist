@@ -1,10 +1,8 @@
 import math
-from collections import OrderedDict
 from flask import render_template, request, redirect, url_for
+from sqlalchemy import or_
 from . import main
 from ..models import *
-from sqlalchemy import or_
-import pybel
 
 
 @main.route('/')
@@ -95,7 +93,7 @@ def validate(molecules):
     mol_ids = list(map(int, molecules.split(',')))
     molecules = NistMolecule.query.filter(NistMolecule.id.in_(mol_ids))
 
-    mol_T_dict = OrderedDict()
+    mol_T_dict = {}
     for mol in molecules:
         if mol.Tfus is not None:
             Tmin = mol.Tfus

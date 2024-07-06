@@ -1,18 +1,10 @@
-""" Database engine
-"""
-
-from scipy import interpolate
 import json
+from scipy import interpolate
 from sqlalchemy.orm import relationship
 from sqlalchemy import Column, Integer, Float, Text, String, ForeignKey, Boolean
-
+from openbabel import pybel
+from .formula import Formula
 from . import db
-
-import sys
-
-sys.path.append('../../ms-tools')
-
-from mstools.formula import Formula
 
 
 def ri(f):
@@ -26,7 +18,6 @@ def ri(f):
 
 
 class NistGroup(db.Model):
-    __bind_key__ = 'nist'
     __tablename__ = 'nist_group'
     id = Column(Integer, primary_key=True)
     name = Column(String(100))
@@ -40,7 +31,6 @@ class NistGroup(db.Model):
 
 
 class NistMolecule(db.Model):
-    __bind_key__ = 'nist'
     __tablename__ = 'nist_molecule'
     id = Column(Integer, primary_key=True)
     content_id = Column(String(100), unique=True)
@@ -188,27 +178,24 @@ class NistMolecule(db.Model):
         return st  # mN/m
 
     def update_n_heavy(self):
-        import pybel
         m = pybel.readstring('smi', self.smiles)
         self.n_heavy = m.OBMol.NumHvyAtoms()
 
         f = Formula(self.formula)
         N = 0
-        for a, n in f.atomlist:
+        for a, n in f.atoms.items():
             if a not in ('H', 'F', 'Cl', 'Br'):
                 N += n
         self.n_nothx = N
 
 
 class NistMoleculeGroup(db.Model):
-    __bind_key__ = 'nist'
     __tablename__ = 'nist_molecule_group'
     molecule_id = Column(Integer, ForeignKey(NistMolecule.id), primary_key=True)
     group_id = Column(Integer, ForeignKey(NistGroup.id), primary_key=True)
 
 
 class NistProperty(db.Model):
-    __bind_key__ = 'nist'
     __tablename__ = 'nist_property'
     id = Column(Integer, primary_key=True)
     name = Column(String(100))
@@ -220,7 +207,6 @@ class NistProperty(db.Model):
 
 
 class NistHasData(db.Model):
-    __bind_key__ = 'nist'
     __tablename__ = 'nist_has_data'
     id = Column(Integer, primary_key=True)
     molecule_id = Column(Integer, ForeignKey(NistMolecule.id))
@@ -234,7 +220,6 @@ class NistHasData(db.Model):
 
 
 class NistData(db.Model):
-    __bind_key__ = 'nist'
     __tablename__ = 'nist_data'
     id = Column(Integer, primary_key=True)
     molecule_id = Column(Integer, ForeignKey(NistMolecule.id))
@@ -249,7 +234,6 @@ class NistData(db.Model):
 
 
 class NistSpline(db.Model):
-    __bind_key__ = 'nist'
     __tablename__ = 'nist_spline'
     id = Column(Integer, primary_key=True)
     molecule_id = Column(Integer, ForeignKey(NistMolecule.id))
